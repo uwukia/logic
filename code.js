@@ -21,7 +21,10 @@ const logic = {
     statement: {},
     wff: {},
     conclusion: {},
-    negation: {},
+    unary: {
+      negation: {},
+      scope: {}
+    },
     binary: {
       conditional: {},
       conjunction: {},
@@ -32,7 +35,6 @@ const logic = {
       existential: {},
       universal: {}
     },
-    scope: {}
   },
   predicate: {},
   term: {
@@ -74,7 +76,9 @@ const logic = {
     quantifier: 'quantifier',
     universal: 'universal',
     existence: 'existence',
-    scope: 'scope'
+    scope: 'scope',
+    unary: 'unary',
+    uni: 'unary'
   }
 }
 
@@ -112,10 +116,17 @@ const logic = {
    * @property {Array} [variables]   - A list of objects with each variable in terms and wether they're bound or not.
    * @property {string} [string]     - Its string representation.
    * 
+   * @typedef Unary
+   * @property {string} type      - must be a key in logic.formula.unary
+   * @property {Object} formula   - A well-formed-formula
+   * @property {Array} visual     - A length-2 array with the string representation of the given unary type.
+   * @property {Array} variables  - A list of dependent variables
+   * 
    * @typedef Binary
-   * @property {string} type    - must be a key in logic.formula.binary
-   * @property {Array} formulas - A length-2 array composed of formulas (wff, statement, binary, etc.).
-   * @property {Array} visual   - A length-3 array with the string representation of the given binary type.
+   * @property {string} type      - must be a key in logic.formula.binary
+   * @property {Array} formulas   - A length-2 array composed of formulas (wff, statement, binary, etc.).
+   * @property {Array} visual     - A length-3 array with the string representation of the given binary type.
+   * @property {Array} variables  - A list of dependent variables
    */
 
   /**
@@ -292,6 +303,27 @@ const logic = {
   }
 
   /**
+   * Creates a negation based on a formula.
+   * 
+   * @param {Formula} formula 
+   * 
+   * @returns {Unary} !formula
+   */
+  function newNot(formula) {
+    if (!isType(formula, logic.type.formula)) throw 'LogicError: Negation expects a formula. Received: ' + formula.type
+
+    let variables = formula.variables
+
+    let returnObj = {}
+    returnObj['type'] = logic.type.not
+    returnObj['formula'] = formula
+    returnObj['variables'] = variables
+    returnObj['visual'] = ['¬', '']
+    if (saveString) returnObj['string'] = logicString(returnObj)
+    return returnObj
+  }
+
+  /**
    * Creates a logical binary operation (like a conditional or a conjunction)
    * 
    * @param {string} binaryType - must be a key in logic.formula.binary
@@ -372,6 +404,19 @@ const logic = {
     } else if (isType(logicalObject, logic.type.wff)) {
       let returnString = logicalObject.symbol
       logicalObject.forEach.terms(term => returnString = returnString.concat(logicString(term)))
+      return returnString
+    } else if (isType(logicalObject, logic.type.bin)) {
+      let returnString = ''
+      // returnString = visual[0] + formula[0] + visual[1] + formula[1] + visual[2]
+      logicalObject.formulas.forEach((formula, index) => {
+        returnString = returnString.concat(logicString(formula), logicalObject.visual[index])
+      })
+      returnString = returnString.concat(logicalObject.visual[2])
+      return returnString
+    } else if (isType(logicalObject, logic.type.uni)) {
+      let visual = logicalObject.visual
+      let formula = logicalObject.formula
+      let returnString = visual[0] + logicString(formula) + visual[1]
       return returnString
     } else {
       throw 'LogicError: Could not identify the logic object type: ' + logicalObject.type
