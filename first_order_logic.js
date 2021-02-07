@@ -249,10 +249,7 @@ const logictype = {
       // from here, formulaToSub is valid
 
       // initialize the substituted formula
-      let subFormula = {}
-      for (let key in formulaToSub) {
-        subFormula[key] = formulaToSub[key]
-      }
+      let subFormula = cloneObj(formulaToSub)
 
       subMap.forEach(sub => {
 
@@ -303,10 +300,7 @@ const logictype = {
       // from here, formulaToSub is valid
 
       // initialize the substituted formula
-      let subFormula = {}
-      for (let entry in formulaToSub) {
-        subFormula[entry] = formulaToSub[entry]
-      }
+      let subFormula = cloneObj(formulaToSub)
 
       if (isType(subFormula, logictype.axiomatic)) {
         let oldTerms = subFormula.terms
@@ -458,26 +452,26 @@ const logictype = {
       return newArgument(argType, [], [])
     }
 
-      /**
-       * Adds a premise to an argument
-       * 
-       * @param {Argument} premise 
-       * @param {Argument} argument 
-       * 
-       * @returns {Argument}
-       */
-      function addPremise(premise, argument) {
-        if (!isType(premise, logictype.premise)) throw 'LogicError: Expected a premise to be added. Received: ' + premise.type
+    /**
+     * Adds a premise to an argument
+     * 
+     * @param {Argument} premise 
+     * @param {Argument} argument 
+     * 
+     * @returns {Argument}
+     */
+    function addPremise(premise, argument) {
+      if (!isType(premise, logictype.premise)) throw 'LogicError: Expected a premise to be added. Received: ' + premise.type
 
-        if (!isType(argument, logictype.arg)) throw 'LogicError: Cannot add a premise to a non-argument object: ' + argument.type
-        if (!isType(argument, logictype.assumption)) throw 'LogicError: Cannot add a premise to another premise or assumption.'
+      if (!isType(argument, logictype.arg)) throw 'LogicError: Cannot add a premise to a non-argument object: ' + argument.type
+      if (!isType(argument, logictype.assumption)) throw 'LogicError: Cannot add a premise to another premise or assumption.'
 
-        // premise and argument are valid
+      // premise and argument are valid
 
-        argument.premise.push(premise)
+      argument.premise.push(premise)
 
-        return argument
-      }
+      return argument
+    }
 
     function argSubstitution(substitutionMap, argument) {
       if (!isType(argument, logictype.arg)) throw 'LogicError: Cannot make a substitution on a non-argument object: ' + argument.type
@@ -485,27 +479,22 @@ const logictype = {
         'LogicError: Substitutions may only be applied to axioms and proofs. Received: ' + argument.type
       }
 
-      let newArgument = {}
-      for (let property in argument) {
-        newArgument[property] = argument[property]
-      }
+      let newArgument = cloneObj(argument)
 
-      newArgument.premise.length = 0
-      argument.premise.forEach(prem => {
-        newArgument.premise.push(toPremise(formulaSub(substitutionMap, prem.conclusion)))
+      newArgument.premise.forEach((prem, index) => {
+        newArgument.premise[index] = toPremise(formulaSub(substitutionMap, prem.conclusion))
       })
 
       if (newArgument.assumption) {
-        console.error('lol i havent done this yet')
+        // newArgument.assumption = toAssumption(formulaSub(substitutionMap, assumption.conclusion))
       }
 
-      newArgument.reasoning.length = 0
-      argument.reasoning.forEach(line => {
-        newArgument.reasoning.push(argSubstitution(substitutionMap, line))
+      newArgument.reasoning.forEach((line, index) => {
+        newArgument.reasoning[index] = argSubstitution(substitutionMap, line)
       })
 
       if (isType(newArgument, logictype.axiom)) {
-        newArgument.conclusion = formulaSub(substitutionMap, argument.conclusion)
+        newArgument.conclusion = formulaSub(substitutionMap, newArgument.conclusion)
       } else {
         newArgument.conclusion = newArgument.reasoning[newArgument.reasoning.length - 1].conclusion
       }
@@ -1047,4 +1036,41 @@ const logictype = {
     }
 
     return returnArray
+  }
+
+  /**
+   * Creates an object clone, allocating its information in a different part of memory.
+   * 
+   * @author {@link https://stackoverflow.com/users/35881/a-levy}
+   * source: {@link https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object}
+   * 
+   * @param {Object} object
+   * 
+   * @returns {Object} its clone. 
+   */
+  function cloneObj(object) {
+    var copy
+
+    // Handle non-object types
+    if (typeof object !== 'object') return object
+
+    // Handle Array
+    if (Array.isArray(object)) {
+        copy = []
+        for (let i = 0; i < object.length; i++) {
+            copy[i] = cloneObj(object[i])
+        }
+        return copy
+    }
+
+    // Handle Object
+    if (typeof object === 'object') {
+        copy = {}
+        for (var key in object) {
+            if (object.hasOwnProperty(key)) copy[key] = cloneObj(object[key])
+        }
+        return copy
+    }
+
+    throw new Error("Unable to copy object! Its type isn't supported.");
   }
